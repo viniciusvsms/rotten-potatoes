@@ -1,0 +1,82 @@
+#Deployment de MongoDB
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+spec:
+   selector:
+     matchLabels:
+       app: mongodb
+   template:
+     metadata:
+       labels:
+         app: mongodb
+     spec:
+       containers:
+         - name: mongodb
+           image: mongo:4.4.6
+           ports:
+             - containerPort: 27017
+           env:
+             - name: MONGO_INITDB_ROOT_USERNAME
+               value: mongouser
+             - name: MONGO_INITDB_ROOT_PASSWORD
+               value: mongopwd
+---
+#Service MongoDB
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+spec: 
+  selector: 
+    app: mongodb
+  ports:
+    - port: 27017       
+  type: ClusterIP
+---
+  #Deploy aplicação web
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+spec:
+   replicas: 10
+   selector:
+     matchLabels:
+       app: web
+   template:
+     metadata:
+       labels:
+         app: web
+     spec:
+       containers:
+         - name: web
+           image: luismartorano/rotten-potatoes:latest
+           ports:
+             - containerPort: 5000
+           env:
+             - name: MONGO_DB
+               value: "admin"
+             - name: MONGODB_HOST
+               value: "mongodb" #nome do container do mongodb host
+             - name: MONGODB_PORT
+               value: "27017"
+             - name: MONGODB_USERNAME
+               value: "mongouser"
+             - name: MONGODB_PASSWORD
+               value: "mongopwd"
+---
+#Service aplicação web
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec: 
+  selector: 
+    app: web
+  ports:
+    - port: 80  # this is the service port, can be anything
+      targetPort: 5000  # this is the container port (must match the port your pod is listening on)
+     # nodePort: 30000  # if you don't specify this it randomly picks an available port in your NodePort range  
+  type: NodePort 
